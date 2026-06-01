@@ -1,0 +1,95 @@
+name: publish bottles
+
+# Optional pipeline: build prebuilt binary "bottles" for a formula on each
+# supported OS/arch and attach them to the matching GitHub Release, then merge
+# the generated `bottle do` block into the formula. Until this runs, formulae
+# install from source.
+#
+# Prerequisites:
+#   - The formula's `url` tag/release already exists and installs from source.
+#   - Run this manually after finalizing a formula (e.g. once exacqman v3.0 is
+#     packaged and its resources/sha256 are filled in).
+
+on:
+  workflow_dispatch:
+    inputs:
+      formula:
+        description: "Formula name (e.g. exacqman)"
+        required: true
+      tag:
+        description: "Release tag to attach bottles to (e.g. v3.0)"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: "publish-${{ github.event.inputs.formula }}-${{ github.event.inputs.tag }}"
+  cancel-in-progress: false
+
+jobs:
+  bottle:
+    name: build bottle (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-latest   # Apple Silicon
+          - macos-13       # Intel
+          - ubuntu-latest  # Linuxbrew
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+
+      - name: Tap this repository
+        run: brew tap industrial-pallet-corp/utilities "${{ github.workspace }}"
+
+      - name: Build bottle
+        run: |
+          set -euo pipefail
+          formula="industrial-pallet-corp/utilities/${{ github.event.inputs.formula }}"
+          root_url="https://github.com/${{ github.repository }}/releases/download/${{ github.event.inputs.tag }}"
+          brew install --build-bottle "$formula"
+          brew bottle --json --no-rebuild --root-url="$root_url" "$formula"
+
+      - name: Upload bottle artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: "bottles-${{ matrix.os }}"
+          path: |
+            *.bottle.tar.gz
+            *.bottle.json
+          if-no-files-found: error
+
+  publish:
+    name: attach bottles + update formula
+    needs: bottle
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+
+      - name: Download bottle artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: bottles
+          merge-multiple: true
+
+      - name: Upload bottles to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.event.inputs.tag }}" bottles/*.bottle.tar.gz --clobber
+
+      - name: Merge bottle DSL into the formula
+        run: |
+          set -euo pipefail
+          brew tap industrial-pallet-corp/utilities "${{ github.workspace }}"
+          brew bottle --merge --write --no-commit bottles/*.bottle.json
+          echo "The 'bottle do' block has been written into Formula/. Review and commit it (e.g. via a PR)."
+
+      - name: Show formula diff
+        run: git diff -- Formula/ || true

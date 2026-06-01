@@ -1,0 +1,78 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: style + audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+
+      - name: Tap this repository
+        run: brew tap industrial-pallet-corp/utilities "${{ github.workspace }}"
+
+      - name: brew style
+        run: brew style industrial-pallet-corp/utilities
+
+      - name: brew audit
+        run: brew audit --tap=industrial-pallet-corp/utilities --skip-style
+
+  test:
+    name: install + test (${{ matrix.os }})
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-latest   # Apple Silicon
+          - macos-13       # Intel
+          - ubuntu-latest  # Linuxbrew
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+
+      - name: Cache Homebrew Bundler RubyGems
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.set-up-homebrew.outputs.gems-path }}
+          key: ${{ matrix.os }}-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
+          restore-keys: ${{ matrix.os }}-rubygems-
+
+      - name: Tap this repository
+        run: brew tap industrial-pallet-corp/utilities "${{ github.workspace }}"
+
+      - name: Install + test all formulae in the tap
+        run: |
+          set -euo pipefail
+          tap_dir="$(brew --repository industrial-pallet-corp/utilities)"
+          shopt -s nullglob
+          formulae=("$tap_dir"/Formula/*.rb)
+          if [ ${#formulae[@]} -eq 0 ]; then
+            echo "No formulae to test."
+            exit 0
+          fi
+          for f in "${formulae[@]}"; do
+            name="industrial-pallet-corp/utilities/$(basename "${f%.rb}")"
+            echo "::group::install $name"
+            brew install --build-from-source --verbose "$name"
+            echo "::endgroup::"
+            echo "::group::test $name"
+            brew test --verbose "$name"
+            echo "::endgroup::"
+            brew audit --installed "$name"
+          done
