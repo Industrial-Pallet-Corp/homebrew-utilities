@@ -3,9 +3,9 @@ class Exacqman < Formula
 
   desc "Extract, timelapse, and compress footage from ExacqVision servers"
   homepage "https://github.com/Industrial-Pallet-Corp/exacqman"
-  url "https://github.com/Industrial-Pallet-Corp/exacqman/archive/refs/tags/v3.2-beta.tar.gz"
-  version "3.2.0-beta"
-  sha256 "57a803f2d0ea70ac8ca86e7f6ea387002d5faca6aeb8624307fcd0fc369f3e80"
+  url "https://github.com/Industrial-Pallet-Corp/exacqman/archive/refs/tags/v3.2.tar.gz"
+  version "3.2"
+  sha256 "a4d758d846be31eec93fcade0fda1e8d1e4ac761db88baa1a1604214ee6d05da"
   license "MIT"
 
   livecheck do
@@ -179,13 +179,19 @@ class Exacqman < Formula
 
   def caveats
     <<~EOS
-      Config and credentials live in #{etc}/exacqman (run `exacqman init` to seed them).
+      Get started by running:
+
+        exacqman init (to seed config + credentials into #{etc}/exacqman)
+        exacqman --help (to see usage info)
+
+      Config and credentials live in #{etc}/exacqman.
       To run the web UI as a background service:  brew services start exacqman
     EOS
   end
 
   test do
     assert_match "usage", shell_output("#{bin}/exacqman --help")
+    assert_match version.to_s, shell_output("#{bin}/exacqman --version")
     assert_match "usage", shell_output("#{bin}/exacqman-web --help")
   end
 end
