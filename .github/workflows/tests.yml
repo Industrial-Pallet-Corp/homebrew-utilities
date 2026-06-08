@@ -12,6 +12,11 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  # Third-party taps now require explicit trust; without this, brew commands fail
+  # in CI on the untrusted-tap doctor check (Homebrew/brew#22494).
+  HOMEBREW_NO_REQUIRE_TAP_TRUST: 1
+
 jobs:
   lint:
     name: style + audit
@@ -19,10 +24,7 @@ jobs:
     steps:
       - name: Set up Homebrew
         id: set-up-homebrew
-        uses: Homebrew/actions/setup-homebrew@master
-
-      - name: Tap this repository
-        run: brew tap industrial-pallet-corp/utilities "${{ github.workspace }}"
+        uses: Homebrew/actions/setup-homebrew@main
 
       - name: brew style
         run: brew style industrial-pallet-corp/utilities
@@ -44,7 +46,7 @@ jobs:
     steps:
       - name: Set up Homebrew
         id: set-up-homebrew
-        uses: Homebrew/actions/setup-homebrew@master
+        uses: Homebrew/actions/setup-homebrew@main
 
       - name: Cache Homebrew Bundler RubyGems
         uses: actions/cache@v4
@@ -52,9 +54,6 @@ jobs:
           path: ${{ steps.set-up-homebrew.outputs.gems-path }}
           key: ${{ matrix.os }}-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
           restore-keys: ${{ matrix.os }}-rubygems-
-
-      - name: Tap this repository
-        run: brew tap industrial-pallet-corp/utilities "${{ github.workspace }}"
 
       - name: Install + test all formulae in the tap
         run: |
