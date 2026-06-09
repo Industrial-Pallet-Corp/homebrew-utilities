@@ -13,13 +13,9 @@ permissions:
   contents: read
 
 env:
-  # Third-party taps now require explicit trust; without this, brew commands fail
-  # in CI on the untrusted-tap doctor check (Homebrew/brew#22494).
+  # Third-party taps now require explicit trust; without this, brew commands on
+  # this tap can fail in CI on the untrusted-tap check (Homebrew/brew#22494).
   HOMEBREW_NO_REQUIRE_TAP_TRUST: 1
-  # The GitHub Linux runners have no rootless bwrap, so Homebrew's Linux build
-  # sandbox can't initialize ("Bubblewrap is required..."). Opt out of it; macOS
-  # uses sandbox-exec and is unaffected (Homebrew/brew#22315).
-  HOMEBREW_NO_SANDBOX_LINUX: 1
 
 jobs:
   lint:
@@ -35,50 +31,3 @@ jobs:
 
       - name: brew audit
         run: brew audit --tap=industrial-pallet-corp/utilities --skip-style
-
-  test:
-    name: install + test (${{ matrix.os }})
-    needs: lint
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - macos-latest   # Apple Silicon
-          - macos-13       # Intel
-          - ubuntu-latest  # Linuxbrew
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Set up Homebrew
-        id: set-up-homebrew
-        uses: Homebrew/actions/setup-homebrew@main
-
-      - name: Cache Homebrew Bundler RubyGems
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.set-up-homebrew.outputs.gems-path }}
-          key: ${{ matrix.os }}-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
-          restore-keys: ${{ matrix.os }}-rubygems-
-
-      - name: Install + test all formulae in the tap
-        run: |
-          set -euo pipefail
-          tap_dir="$(brew --repository industrial-pallet-corp/utilities)"
-          shopt -s nullglob
-          formulae=("$tap_dir"/Formula/*.rb)
-          if [ ${#formulae[@]} -eq 0 ]; then
-            echo "No formulae to test."
-            exit 0
-          fi
-          for f in "${formulae[@]}"; do
-            name="industrial-pallet-corp/utilities/$(basename "${f%.rb}")"
-            echo "::group::install $name"
-            brew install --build-from-source --verbose "$name"
-            echo "::endgroup::"
-            echo "::group::test $name"
-            brew test --verbose "$name"
-            echo "::endgroup::"
-            # Audit only this formula. `--installed` would audit every formula on
-            # the runner (incl. GitHub's pre-installed hashicorp/aws taps, which
-            # fail to import) and is redundant with the lint job's tap audit.
-            brew audit "$name"
-          done

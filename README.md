@@ -83,7 +83,7 @@ brew upgrade <utility>
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for how to add a new utility, the required
-formula conventions, and how CI validates formulae on macOS and Linux.
+formula conventions, and how CI validates formula style and structure.
 
 ## License
 

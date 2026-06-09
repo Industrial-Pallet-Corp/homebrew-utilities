@@ -8,7 +8,7 @@ describes how to add or update one and the conventions every formula must follow
 
 ```
 Formula/                 # one <name>.rb per utility (auto-discovered by brew)
-.github/workflows/       # CI: lint/audit + cross-platform install & test
+.github/workflows/       # CI: brew style + audit (formula style & structure)
 README.md                # tap intro + utility index
 ```
 
@@ -47,8 +47,10 @@ README.md                # tap intro + utility index
    brew style industrial-pallet-corp/utilities
    ```
 
-5. Open a PR. CI runs `brew style`/`brew audit` and then installs + tests the
-   changed formula on macOS (Apple Silicon and Intel) and Linux.
+5. Open a PR. CI runs `brew style` and `brew audit` to check formula style and
+   structural correctness. CI does not install or `brew test` formulae (that is
+   heavy and platform-specific), so make sure you have run the install/test
+   commands in step 4 locally before opening the PR.
 
 ## Required formula conventions
 
