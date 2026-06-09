@@ -16,6 +16,10 @@ env:
   # Third-party taps now require explicit trust; without this, brew commands fail
   # in CI on the untrusted-tap doctor check (Homebrew/brew#22494).
   HOMEBREW_NO_REQUIRE_TAP_TRUST: 1
+  # The GitHub Linux runners have no rootless bwrap, so Homebrew's Linux build
+  # sandbox can't initialize ("Bubblewrap is required..."). Opt out of it; macOS
+  # uses sandbox-exec and is unaffected (Homebrew/brew#22315).
+  HOMEBREW_NO_SANDBOX_LINUX: 1
 
 jobs:
   lint:
@@ -73,5 +77,8 @@ jobs:
             echo "::group::test $name"
             brew test --verbose "$name"
             echo "::endgroup::"
-            brew audit --installed "$name"
+            # Audit only this formula. `--installed` would audit every formula on
+            # the runner (incl. GitHub's pre-installed hashicorp/aws taps, which
+            # fail to import) and is redundant with the lint job's tap audit.
+            brew audit "$name"
           done
