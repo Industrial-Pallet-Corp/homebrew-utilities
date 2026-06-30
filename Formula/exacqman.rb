@@ -3,8 +3,8 @@ class Exacqman < Formula
 
   desc "Extract, timelapse, and compress footage from ExacqVision servers"
   homepage "https://github.com/Industrial-Pallet-Corp/exacqman"
-  url "https://github.com/Industrial-Pallet-Corp/exacqman/archive/refs/tags/v3.4.1.tar.gz"
-  sha256 "0ca291f6925c341ec678cf719d03abef4cd7e25e42fca070ea497ad094096699"
+  url "https://github.com/Industrial-Pallet-Corp/exacqman/archive/refs/tags/v3.4.2.tar.gz"
+  sha256 "fc53d34e4911e654468392d1add225d81ffcbfb6f873b69e173c739d9f51a8f5"
   license "MIT"
 
   livecheck do
@@ -152,7 +152,7 @@ class Exacqman < Formula
 
     # We install imageio-ffmpeg from its sdist (no bundled binary), so point it at
     # the Homebrew ffmpeg for both the CLI and the web service.
-    ffmpeg = Formula["ffmpeg"].opt_bin/"ffmpeg"
+    ffmpeg = formula_opt_bin("ffmpeg")/"ffmpeg"
     %w[exacqman exacqman-web].each do |cmd|
       (bin/cmd).delete
       (bin/cmd).write_env_script libexec/"bin"/cmd, IMAGEIO_FFMPEG_EXE: ffmpeg
