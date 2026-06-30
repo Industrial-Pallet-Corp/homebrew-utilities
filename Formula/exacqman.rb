@@ -3,8 +3,8 @@ class Exacqman < Formula
 
   desc "Extract, timelapse, and compress footage from ExacqVision servers"
   homepage "https://github.com/Industrial-Pallet-Corp/exacqman"
-  url "https://github.com/Industrial-Pallet-Corp/exacqman/archive/refs/tags/v3.4.tar.gz"
-  sha256 "3a2a671e1f4cbfc533316e195f167b5c1d859b28359678f79112bd7926f3e962"
+  url "https://github.com/Industrial-Pallet-Corp/exacqman/archive/refs/tags/v3.4.1.tar.gz"
+  sha256 "17b45af661580ef2b9e619c6f2b984b858db45ed5c7a15644baec4188981d73c"
   license "MIT"
 
   livecheck do
